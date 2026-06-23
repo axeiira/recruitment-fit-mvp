@@ -18,6 +18,8 @@ export const api = {
   outcomes: () => req("/api/outcomes"),
   getRubric: (clientId) => req(`/api/clients/${clientId}/rubric`),
   deriveRubric: (clientId) => req(`/api/clients/${clientId}/rubric`, { method: "POST" }),
+  getEvaluation: (candidateId, clientId) =>
+    req(`/api/evaluations?candidateId=${candidateId}&clientId=${clientId}`),
   evaluate: (candidateId, clientId) =>
     req("/api/evaluate", { method: "POST", body: JSON.stringify({ candidateId, clientId }) }),
 };

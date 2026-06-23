@@ -21,6 +21,26 @@ export default function MatchScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!candidateId || !clientId) return;
+
+    let cancelled = false;
+    setError(null);
+
+    api
+      .getEvaluation(Number(candidateId), Number(clientId))
+      .then((saved) => {
+        if (!cancelled) setResult(saved);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateId, clientId]);
+
   async function evaluate() {
     setLoading(true);
     setError(null);

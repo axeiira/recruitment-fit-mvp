@@ -30,7 +30,7 @@ function parseJsonLoose(text) {
 export async function completeJSON({ system, user, maxTokens = 2000 }) {
   const res = await getClient().chat.completions.create({
     model: MODEL,
-    max_tokens: maxTokens,
+    max_completion_tokens: maxTokens,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: system },

@@ -26,14 +26,14 @@ So this MVP does two things, in order:
 - **Frontend** — React + Vite (IBM Plex Sans, weighted rubric bars as the signature element)
 - **Backend** — Node + Express (ES modules)
 - **Database** — PostgreSQL (the rubric/score store *is* the measurement substrate)
-- **AI** — Claude via the Anthropic SDK, with strict-JSON extraction & generation prompts
+- **AI** — OpenAI via the OpenAI SDK, with strict-JSON extraction & generation prompts
   (see `backend/src/prompts.js`)
 
 ## Architecture
 
 ```
                  ┌──────────────┐     POST /api/clients/:id/rubric    ┌───────────┐
-   React (Vite) ─┤   Express     ├── deriveRubric() ─────────────────▶│  Claude   │
+   React (Vite) ─┤   Express     ├── deriveRubric() ─────────────────▶│  OpenAI   │
    3 screens     │   API         │   buildRubricPrompt()              │  (JSON)   │
         │        │               ├── evaluate() ─────────────────────▶│           │
         │        │               │   buildEvaluationPrompt()          └───────────┘
