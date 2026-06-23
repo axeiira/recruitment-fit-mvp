@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-export default function MatchScreen({ openaiApiKey }) {
+export default function MatchScreen({ goTo, openaiApiKey }) {
   const [clients, setClients] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [clientId, setClientId] = useState("");
@@ -11,9 +11,20 @@ export default function MatchScreen({ openaiApiKey }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.clients().then((c) => {
-      setClients(c);
-      if (c[0]) setClientId(String(c[0].id));
+    api.clients().then(async (c) => {
+      const withRubrics = await Promise.all(
+        c.map(async (client) => {
+          const rubric = await api.getRubric(client.id).catch(() => null);
+          return rubric ? client : null;
+        })
+      );
+      const rubricClients = withRubrics.filter(Boolean);
+      setClients(rubricClients);
+      setClientId(rubricClients[0] ? String(rubricClients[0].id) : "");
+      if (!rubricClients.length) {
+        setResult(null);
+        setError(null);
+      }
     });
     api.candidates().then((c) => {
       setCandidates(c);
@@ -42,6 +53,10 @@ export default function MatchScreen({ openaiApiKey }) {
   }, [candidateId, clientId]);
 
   async function evaluate() {
+    if (!candidateId || !clientId) {
+      setError("Select a candidate and a client with a generated rubric.");
+      return;
+    }
     if (!openaiApiKey) {
       setError("Enter your OpenAI API key to generate AI results.");
       return;
@@ -95,10 +110,19 @@ export default function MatchScreen({ openaiApiKey }) {
             ))}
           </select>
         </div>
-        <button className="btn" onClick={evaluate} disabled={loading || !openaiApiKey} style={{ alignSelf: "flex-end" }}>
+        <button className="btn" onClick={evaluate} disabled={loading || !openaiApiKey || !candidateId || !clientId} style={{ alignSelf: "flex-end" }}>
           {loading ? "Generating…" : "Generate fit brief"}
         </button>
       </div>
+
+      {!clients.length && (
+        <div className="empty">
+          No clients have generated rubrics yet. Derive a rubric before generating a fit brief.
+          <div style={{ marginTop: 12 }}>
+            <button className="btn" onClick={() => goTo("rubric")}>Go to derive rubric</button>
+          </div>
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
 
