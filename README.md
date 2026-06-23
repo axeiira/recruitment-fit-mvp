@@ -45,11 +45,11 @@ So this MVP does two things, in order:
 
 ## Run locally
 
-Prerequisites: Docker, Node 20+, and an OpenAI API key.
+Prerequisites: Docker, Node 20+, and an OpenAI API key entered in the web UI when generating AI output.
 
 ```bash
 # 1. backend + database (postgres auto-loads schema + seed on first boot)
-cp .env.example .env          # add your OPENAI_API_KEY
+cp .env.example .env          # optional: set OPENAI_MODEL
 docker compose up --build     # backend on :4000, db on :5432
 
 # 2. frontend (separate terminal)
@@ -58,7 +58,9 @@ npm install
 npm run dev                   # http://localhost:5173 (proxies /api to :4000)
 ```
 
-Check health: `curl localhost:4000/api/health` → `{ ok: true, model: ..., hasKey: true }`.
+Check health: `curl localhost:4000/api/health` → `{ ok: true, model: ... }`.
+
+This demo does not deploy with an owner OpenAI key. Users enter their own key in the browser before generating rubrics or fit briefs. The key is sent to the backend only in the `X-OpenAI-API-Key` header for generation requests, is not saved to Postgres, and is not stored by the browser. Deploy over HTTPS only.
 
 Re-seeding: `docker compose down -v && docker compose up --build` starts from clean seed data.
 
@@ -74,7 +76,7 @@ Re-seeding: `docker compose down -v && docker compose up --build` starts from cl
 ## Deploying to AWS
 
 - **Backend** → AWS App Runner from the `backend/Dockerfile` (simplest), or ECS Fargate.
-  Set `DATABASE_URL` and `OPENAI_API_KEY` as service env vars. Avoid API Gateway + Lambda
+  Set `DATABASE_URL` and optionally `OPENAI_MODEL` as service env vars. Avoid API Gateway + Lambda
   here — the 29s gateway timeout fights synchronous LLM generation.
 - **Database** → Amazon RDS for PostgreSQL (small instance). Apply `db/01_schema.sql` and
   `db/02_seed.sql` once on provisioning.

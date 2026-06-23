@@ -20,7 +20,6 @@ services:
     build: ./backend
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/recruitment_fit
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       PORT: 4000
     ports:

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-export default function MatchScreen() {
+export default function MatchScreen({ openaiApiKey }) {
   const [clients, setClients] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [clientId, setClientId] = useState("");
@@ -42,11 +42,15 @@ export default function MatchScreen() {
   }, [candidateId, clientId]);
 
   async function evaluate() {
+    if (!openaiApiKey) {
+      setError("Enter your OpenAI API key to generate AI results.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      setResult(await api.evaluate(Number(candidateId), Number(clientId)));
+      setResult(await api.evaluate(Number(candidateId), Number(clientId), openaiApiKey));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -91,7 +95,7 @@ export default function MatchScreen() {
             ))}
           </select>
         </div>
-        <button className="btn" onClick={evaluate} disabled={loading} style={{ alignSelf: "flex-end" }}>
+        <button className="btn" onClick={evaluate} disabled={loading || !openaiApiKey} style={{ alignSelf: "flex-end" }}>
           {loading ? "Generating…" : "Generate fit brief"}
         </button>
       </div>

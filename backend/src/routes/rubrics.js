@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.js";
 import { completeJSON } from "../llm.js";
 import { buildRubricPrompt } from "../prompts.js";
+import { getOpenAIKey } from "../requestKey.js";
 
 const router = Router();
 
@@ -33,8 +34,9 @@ router.post("/clients/:id/rubric", async (req, res, next) => {
       [id]
     );
 
+    const apiKey = getOpenAIKey(req);
     const { system, user } = buildRubricPrompt(client, outcomes);
-    const { data, model } = await completeJSON({ system, user, maxTokens: 1500 });
+    const { data, model } = await completeJSON({ system, user, maxTokens: 1500, apiKey });
 
     if (!data.dimensions || !Array.isArray(data.dimensions)) {
       return res.status(502).json({ error: "Model returned no dimensions" });

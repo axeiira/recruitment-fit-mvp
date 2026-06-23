@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-export default function RubricScreen() {
+export default function RubricScreen({ openaiApiKey }) {
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState("");
   const [client, setClient] = useState(null);
@@ -25,10 +25,14 @@ export default function RubricScreen() {
   }, [clientId, clients]);
 
   async function derive() {
+    if (!openaiApiKey) {
+      setError("Enter your OpenAI API key to generate AI results.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      setRubric(await api.deriveRubric(clientId));
+      setRubric(await api.deriveRubric(clientId, openaiApiKey));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -63,7 +67,7 @@ export default function RubricScreen() {
             ))}
           </select>
         </div>
-        <button className="btn" onClick={derive} disabled={loading} style={{ alignSelf: "flex-end" }}>
+        <button className="btn" onClick={derive} disabled={loading || !openaiApiKey} style={{ alignSelf: "flex-end" }}>
           {loading ? "Deriving…" : rubric ? "Re-derive rubric" : "Derive rubric"}
         </button>
       </div>

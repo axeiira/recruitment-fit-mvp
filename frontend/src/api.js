@@ -2,7 +2,7 @@ const BASE = import.meta.env.VITE_API_URL || "";
 
 async function req(path, options) {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
     ...options,
   });
   if (!res.ok) {
@@ -17,9 +17,17 @@ export const api = {
   candidates: () => req("/api/candidates"),
   outcomes: () => req("/api/outcomes"),
   getRubric: (clientId) => req(`/api/clients/${clientId}/rubric`),
-  deriveRubric: (clientId) => req(`/api/clients/${clientId}/rubric`, { method: "POST" }),
+  deriveRubric: (clientId, openaiApiKey) =>
+    req(`/api/clients/${clientId}/rubric`, {
+      method: "POST",
+      headers: { "X-OpenAI-API-Key": openaiApiKey },
+    }),
   getEvaluation: (candidateId, clientId) =>
     req(`/api/evaluations?candidateId=${candidateId}&clientId=${clientId}`),
-  evaluate: (candidateId, clientId) =>
-    req("/api/evaluate", { method: "POST", body: JSON.stringify({ candidateId, clientId }) }),
+  evaluate: (candidateId, clientId, openaiApiKey) =>
+    req("/api/evaluate", {
+      method: "POST",
+      headers: { "X-OpenAI-API-Key": openaiApiKey },
+      body: JSON.stringify({ candidateId, clientId }),
+    }),
 };

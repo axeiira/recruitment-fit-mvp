@@ -2,15 +2,11 @@ import OpenAI from "openai";
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-let client = null;
-function getClient() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error(
-      "OPENAI_API_KEY is not set. Add it to backend/.env (see .env.example)."
-    );
+function getClient(apiKey) {
+  if (!apiKey) {
+    throw new Error("OpenAI API key is required for generation.");
   }
-  if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return client;
+  return new OpenAI({ apiKey });
 }
 
 // Pull the first valid JSON object out of a model response, tolerating
@@ -27,8 +23,8 @@ function parseJsonLoose(text) {
  * Call the model and return parsed JSON.
  * @returns {Promise<{data: object, model: string}>}
  */
-export async function completeJSON({ system, user, maxTokens = 2000 }) {
-  const res = await getClient().chat.completions.create({
+export async function completeJSON({ system, user, maxTokens = 2000, apiKey }) {
+  const res = await getClient(apiKey).chat.completions.create({
     model: MODEL,
     max_completion_tokens: maxTokens,
     response_format: { type: "json_object" },

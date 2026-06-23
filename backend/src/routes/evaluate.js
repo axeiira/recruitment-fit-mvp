@@ -2,6 +2,7 @@ import { Router } from "express";
 import { query } from "../db.js";
 import { completeJSON } from "../llm.js";
 import { buildRubricPrompt, buildEvaluationPrompt } from "../prompts.js";
+import { getOpenAIKey } from "../requestKey.js";
 
 const router = Router();
 
@@ -48,6 +49,8 @@ router.post("/evaluate", async (req, res, next) => {
       return res.status(404).json({ error: "Client or candidate not found" });
     }
 
+    const apiKey = getOpenAIKey(req);
+
     // Ensure a rubric exists
     let [rubric] = await query("SELECT * FROM client_rubrics WHERE client_id = $1", [clientId]);
     if (!rubric) {
@@ -58,7 +61,12 @@ router.post("/evaluate", async (req, res, next) => {
         [clientId]
       );
       const rp = buildRubricPrompt(client, outcomes);
-      const derived = await completeJSON({ system: rp.system, user: rp.user, maxTokens: 1500 });
+      const derived = await completeJSON({
+        system: rp.system,
+        user: rp.user,
+        maxTokens: 1500,
+        apiKey,
+      });
       [rubric] = await query(
         `INSERT INTO client_rubrics (client_id, dimensions, model)
          VALUES ($1, $2, $3)
@@ -72,7 +80,7 @@ router.post("/evaluate", async (req, res, next) => {
       typeof rubric.dimensions === "string" ? JSON.parse(rubric.dimensions) : rubric.dimensions;
 
     const { system, user } = buildEvaluationPrompt(client, dimensions, candidate);
-    const { data, model } = await completeJSON({ system, user, maxTokens: 2000 });
+    const { data, model } = await completeJSON({ system, user, maxTokens: 2000, apiKey });
 
     const [saved] = await query(
       `INSERT INTO evaluations (candidate_id, client_id, overall_fit, scores, gap_analysis, prep_brief, model)
