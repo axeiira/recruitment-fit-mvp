@@ -7,13 +7,18 @@ export default function RubricScreen({ openaiApiKey }) {
   const [client, setClient] = useState(null);
   const [rubric, setRubric] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.clients().then((c) => {
-      setClients(c);
-      if (c[0]) setClientId(String(c[0].id));
-    });
+    api
+      .clients()
+      .then((c) => {
+        setClients(c);
+        if (c[0]) setClientId(String(c[0].id));
+      })
+      .catch(() => {})
+      .finally(() => setInitializing(false));
   }, []);
 
   useEffect(() => {
@@ -56,6 +61,15 @@ export default function RubricScreen({ openaiApiKey }) {
         weighted by what actually drove past accept / reject decisions.
       </p>
 
+      {initializing && (
+        <div className="loading">
+          <span className="spinner" />
+          Loading clients…
+        </div>
+      )}
+
+      {!initializing && (
+        <>
       <div className="row">
         <div className="field">
           <label>Client</label>
@@ -117,6 +131,8 @@ export default function RubricScreen({ openaiApiKey }) {
 
       {!dims.length && !loading && !error && (
         <div className="empty">No rubric yet. Derive one to see the dimensions.</div>
+      )}
+        </>
       )}
     </section>
   );

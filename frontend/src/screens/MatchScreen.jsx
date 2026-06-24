@@ -8,10 +8,11 @@ export default function MatchScreen({ goTo, openaiApiKey }) {
   const [candidateId, setCandidateId] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.clients().then(async (c) => {
+    const clientsWithRubrics = api.clients().then(async (c) => {
       const withRubrics = await Promise.all(
         c.map(async (client) => {
           const rubric = await api.getRubric(client.id).catch(() => null);
@@ -26,10 +27,13 @@ export default function MatchScreen({ goTo, openaiApiKey }) {
         setError(null);
       }
     });
-    api.candidates().then((c) => {
+    const cands = api.candidates().then((c) => {
       setCandidates(c);
       if (c[0]) setCandidateId(String(c[0].id));
     });
+    Promise.all([clientsWithRubrics, cands])
+      .catch(() => {})
+      .finally(() => setInitializing(false));
   }, []);
 
   useEffect(() => {
@@ -89,6 +93,15 @@ export default function MatchScreen({ goTo, openaiApiKey }) {
         across clients — that is the point.
       </p>
 
+      {initializing && (
+        <div className="loading">
+          <span className="spinner" />
+          Loading candidates and clients…
+        </div>
+      )}
+
+      {!initializing && (
+        <>
       <div className="row">
         <div className="field">
           <label>Candidate</label>
@@ -162,6 +175,8 @@ export default function MatchScreen({ goTo, openaiApiKey }) {
             Scoring is illustrative on synthetic data — validation requires real structured outcomes,
             which is exactly the measurement loop this tool is built to create.
           </p>
+        </>
+      )}
         </>
       )}
     </section>
