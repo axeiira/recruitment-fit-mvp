@@ -28,6 +28,8 @@ So this MVP does two things, in order:
 - **Database** — PostgreSQL (the rubric/score store *is* the measurement substrate)
 - **AI** — OpenAI via the OpenAI SDK, with strict-JSON extraction & generation prompts
   (see `backend/src/prompts.js`)
+- **Hosting** — Vercel (frontend) · Render (backend) · Neon (Postgres), all on free tiers
+  (see [Deployment](#deployment))
 
 ## Architecture
 
@@ -73,15 +75,35 @@ Re-seeding: `docker compose down -v && docker compose up --build` starts from cl
 | POST | `/api/clients/:id/rubric` | Derive + store rubric (screen 2) |
 | POST | `/api/evaluate` `{candidateId, clientId}` | Score + gap analysis + prep brief (screen 3) |
 
-## Deploying to AWS
+## Deployment
 
-- **Backend** → AWS App Runner from the `backend/Dockerfile` (simplest), or ECS Fargate.
-  Set `DATABASE_URL` and optionally `OPENAI_MODEL` as service env vars. Avoid API Gateway + Lambda
-  here — the 29s gateway timeout fights synchronous LLM generation.
-- **Database** → Amazon RDS for PostgreSQL (small instance). Apply `db/01_schema.sql` and
-  `db/02_seed.sql` once on provisioning.
-- **Frontend** → `npm run build`, then host the static `dist/` on S3 + CloudFront (or Amplify).
-  Set `VITE_API_URL` to the App Runner URL at build time.
+The app is deployed entirely on free tiers:
+
+| Layer | Service | Notes |
+|-------|---------|-------|
+| Frontend | **Vercel** | Root dir `frontend`, Vite preset. `VITE_API_URL` env var points at the backend URL. |
+| Backend  | **Render** (free web service) | Root dir `backend`, build `npm install`, start `npm start`. `DATABASE_URL` env var = the Neon connection string. |
+| Database | **Neon** (serverless Postgres) | Persistent free tier; requires SSL. Schema + seed applied once via the Neon SQL editor — run `db/01_schema.sql`, then `db/02_seed.sql`. |
+| Uptime   | **UptimeRobot** | Pings `/api/health` every ~5 min so Render's free instance doesn't cold-start. |
+
+Both Render and Vercel auto-deploy on push to `main`. Changing `VITE_API_URL` requires a manual
+Vercel redeploy, since Vite bakes env vars in at build time.
+
+### Resilience for free-tier hosting
+
+- **Hosted Postgres SSL** — `backend/src/db.js` enables TLS for any non-localhost `DATABASE_URL`
+  (Neon requires it) while keeping local Docker connections SSL-free.
+- **Neon idle auto-suspend** — the connection pool drops idle clients early and `query()` retries
+  transient connection errors, so the first query after Neon wakes recovers transparently instead
+  of returning a 500.
+- **Stale browser connections** — `frontend/src/api.js` retries network-level fetch failures on
+  idempotent GETs. After the tab idles, a reused stale keep-alive connection would otherwise surface
+  as "Load Failed" until a manual refresh.
+- **Loading states** — all three screens show a spinner during initial data load instead of flashing
+  empty `(0)` counts.
+
+> Note: the original AWS path (App Runner + RDS + S3/CloudFront) still works from the same
+> `backend/Dockerfile` and build output if a managed cloud deploy is preferred.
 
 ## Intentionally out of scope
 
